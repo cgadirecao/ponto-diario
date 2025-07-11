@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema de Ponto Individual</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background: #f7f7f7; }
+    h1 { text-align: center; }
+    .formulario, .botoes { margin-bottom: 20px; text-align: center; }
+    label { margin: 0 10px; }
+    input, select, textarea { padding: 6px; margin: 5px; }
+    button { padding: 10px 20px; margin: 10px 5px; border: none; border-radius: 6px; cursor: pointer; }
+    .entrada { background: #28a745; color: white; }
+    .saida { background: #dc3545; color: white; }
+    .exportar { background: #007bff; color: white; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #ddd; }
+  </style>
+</head>
+<body>
+
+  <h1>Sistema de Ponto Diário</h1>
+
+  <div class="formulario">
+    <label>Nome completo: <input id="nome" type="text" /></label>
+    <label>Setor: <input id="setor" type="text" /></label>
+    <label>Carga horária (h/dia): <input id="carga" type="number" value="8" /></label>
+    <button onclick="salvarUsuario()">Salvar Dados</button>
+  </div>
+
+  <div class="botoes">
+    <button class="entrada" onclick="registrarEntrada()">Registrar Entrada</button>
+    <button class="saida" onclick="registrarSaida()">Registrar Saída</button>
+    <button class="exportar" onclick="exportarCSV()">📥 Exportar Folha</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Entrada</th>
+        <th>Saída</th>
+        <th>Horas Trabalhadas</th>
+        <th>Extras</th>
+        <th>Faltantes</th>
+        <th>Justificativa</th>
+        <th>⤴</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaPonto"></tbody>
+  </table>
+
+  <script>
+    const tabela = document.getElementById("tabelaPonto");
+
+    function salvarUsuario() {
+      const nome = document.getElementById("nome").value;
+      const setor = document.getElementById("setor").value;
+      const carga = document.getElementById("carga").value;
+      localStorage.setItem("usuario", JSON.stringify({ nome, setor, carga: Number(carga) }));
+      alert("Dados salvos!");
+      carregarRegistros();
+    }
+
+    function carregarUsuario() {
+      const dados = JSON.parse(localStorage.getItem("usuario") || "{}");
+      if (dados.nome) {
+        document.getElementById("nome").value = dados.nome;
+        document.getElementById("setor").value = dados.setor;
+        document.getElementById("carga").value = dados.carga;
+      }
+    }
+
+    function carregarRegistros() {
+      const registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+      const cargaMin = usuario.carga ? usuario.carga * 60 : 480;
+
+      tabela.innerHTML = "";
+      registros.forEach((r, i) => {
+        const tr = document.createElement("tr");
+
+        const trabMin = r.trabalhadas ? hToMin(r.trabalhadas) : 0;
+        const extras = trabMin > cargaMin ? trabMin - cargaMin : 0;
+        const faltas = trabMin < cargaMin ? cargaMin - trabMin : 0;
+
+        tr.innerHTML = `
+          <td>${r.data}</td>
+          <td>${r.entrada || ""}</td>
+          <td>${r.saida || ""}</td>
+          <td>${r.trabalhadas || ""}</td>
+          <td>${minToH(extra = extras)}</td>
+          <td>${minToH(falta = faltas)}</td>
+          <td>${r.justificativa || ""}</td>
+          <td><button onclick="inserirJustificativa(${i})">✎</button></td>
+        `;
+        tabela.appendChild(tr);
+      });
+    }
+
+    function registrarEntrada() {
+      const hoje = new Date().toLocaleDateString();
+      let registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      if (registros.some(r => r.data === hoje)) return alert("Entrada já registrada.");
+      registros.push({ data: hoje, entrada: new Date().toLocaleTimeString() });
+      localStorage.setItem("pontos", JSON.stringify(registros));
+      carregarRegistros();
+    }
+
+    function registrarSaida() {
+      const hoje = new Date().toLocaleDateString();
+      let registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      const r = registros.find(x => x.data === hoje);
+      if (!r || r.saida) return alert("Entrada não registrada ou saída já registrada.");
+      const agora = new Date();
+      r.saida = agora.toLocaleTimeString();
+
+      const [h, m, s] = r.entrada.split(":").map(Number);
+      const entrada = new Date(); entrada.setHours(h, m, s);
+      const diff = new Date(agora - entrada);
+      r.trabalhadas = `${String(diff.getUTCHours()).padStart(2, "0")}:${String(diff.getUTCMinutes()).padStart(2, "0")}`;
+      localStorage.setItem("pontos", JSON.stringify(registros));
+      carregarRegistros();
+    }
+
+    function inserirJustificativa(i) {
+      let registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      const texto = prompt("Justificativa:", registros[i].justificativa || "");
+      if (texto !== null) {
+        registros[i].justificativa = texto;
+        localStorage.setItem("pontos", JSON.stringify(registros));
+        carregarRegistros();
+      }
+    }
+
+    function exportarCSV() {
+      const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+      const registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      if (registros.length === 0) return alert("Nenhum registro.");
+
+      const cabecalho = ["Data", "Entrada", "Saída", "Horas Trabalhadas", "Extras", "Faltantes", "Justificativa"];
+      const cargaMin = usuario.carga ? usuario.carga * 60 : 480;
+      const linhas = [cabecalho.join(",")];
+
+      registros.forEach(r => {
+        const trabMin = r.trabalhadas ? hToMin(r.trabalhadas) : 0;
+        const extras = trabMin > cargaMin ? trabMin - cargaMin : 0;
+        const faltas = trabMin < cargaMin ? cargaMin - trabMin : 0;
+        linhas.push([
+          r.data,
+          r.entrada || "",
+          r.saida || "",
+          r.trabalhadas || "",
+          minToH(extras),
+          minToH(faltas),
+          (r.justificativa || "").replace(/,/g, ";")
+        ].join(","));
+      });
+
+      const blob = new Blob([linhas.join("\n")], { type: "text/csv" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `folha_${usuario.nome || "usuario"}.csv`;
+      link.click();
+    }
+
+    const hToMin = h => {
+      const [horas, minutos] = h.split(":").map(Number);
+      return horas * 60 + minutos;
+    };
+    const minToH = m => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+    carregarUsuario();
+    carregarRegistros();
+  </script>
+
+</body>
+</html>
