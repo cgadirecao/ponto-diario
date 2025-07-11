@@ -1,0 +1,72 @@
+# Cria o diretório local e inicializa o Git
+mkdir ponto-individual && cd ponto-individual
+git init
+
+# Cria o arquivo index.html com o sistema completo
+cat << 'EOF' > index.html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema de Ponto Individual</title>
+  <style>
+    body { font-family:Arial;margin:30px;background:#f7f7f7; }
+    h1 { text-align:center; }
+    .formulario, .botoes { text-align:center;margin-bottom:20px; }
+    input {padding:6px;margin:5px;}
+    button {padding:10px 20px;margin:5px;border:none;border-radius:6px;cursor:pointer;}
+    .entrada {background:#28a745;color:#fff;}
+    .saida {background:#dc3545;color:#fff;}
+    .exportar {background:#007bff;color:#fff;}
+    table {width:100%;border-collapse:collapse;background:#fff;}
+    th,td {border:1px solid #ccc;padding:8px;text-align:center;}
+    th {background:#ddd;}
+  </style>
+</head>
+<body>
+
+  <h1>Sistema de Ponto Diário</h1>
+
+  <div class="formulario">
+    <label>Nome completo: <input id="nome" type="text"/></label>
+    <label>Setor: <input id="setor" type="text"/></label>
+    <label>Carga horária (h/dia): <input id="carga" type="number" value="8"/></label>
+    <button onclick="salvarUsuario()">Salvar Dados</button>
+  </div>
+
+  <div class="botoes">
+    <button class="entrada" onclick="registrarEntrada()">Registrar Entrada</button>
+    <button class="saida" onclick="registrarSaida()">Registrar Saída</button>
+    <button class="exportar" onclick="exportarCSV()">📥 Exportar Folha</button>
+  </div>
+
+  <table>
+    <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Horas Trabalhadas</th><th>Extras</th><th>Faltantes</th><th>Justificativa</th><th>✎</th></tr></thead>
+    <tbody id="tabelaPonto"></tbody>
+  </table>
+
+  <script>
+    // ... INSIRA AQUI O MESMO SCRIPT JAVASCRIPT QUE ENVIEI ...
+  </script>
+
+</body>
+</html>
+EOF
+
+# Cria README com instruções
+cat << 'EOF' > README.md
+# Sistema de Ponto Individual
+
+Sistema para registro de ponto (entrada/saída), cálculo de extras/faltas, justificativas e exportação da folha em CSV.
+
+## Uso
+
+1. Abra localmente: `index.html`.
+2. Preencha nome, setor e carga horária.
+3. Registre entrada, saída e adicione justificativas.
+4. Exporte a folha clicando no botão "Exportar Folha".
+
+## Hospedagem no GitHub Pages
+
+1. Crie um
+
