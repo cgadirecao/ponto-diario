@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ponto Diário</title>
+  <style>
+    body { font-family: Arial; background: #f0f2f5; margin:0; padding:20px; }
+    h1 { text-align:center; }
+    .botoes { display:flex; justify-content:center; gap:20px; margin-bottom:20px; }
+    button { padding:10px 20px; font-size:16px; border:none; border-radius:8px; cursor:pointer; }
+    .entrada { background:#28a745; color:white; }
+    .saida   { background:#dc3545; color:white; }
+    .export  { background:#007bff; color:white; }
+    table { width:100%; border-collapse:collapse; background:white; }
+    th,td { padding:10px; text-align:center; border:1px solid #ccc; }
+    th { background:#e9ecef; }
+    footer { margin-top:20px; text-align:center; font-size:14px; color:#888; }
+  </style>
+</head>
+<body>
+  <h1>Registro de Ponto Diário</h1>
+  <div class="botoes">
+    <button class="entrada" onclick="registrarEntrada()">Registrar Entrada</button>
+    <button class="saida" onclick="registrarSaida()">Registrar Saída</button>
+    <button class="export" onclick="exportarCSV()">📥 Exportar CSV</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Horas Trabalhadas</th></tr>
+    </thead>
+    <tbody id="registrosTabela"></tbody>
+  </table>
+
+  <footer>Site gratuito – Armazenamento local no navegador</footer>
+
+  <script>
+    const tabela = document.getElementById("registrosTabela");
+
+    function carregarRegistros() {
+      const registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      tabela.innerHTML = "";
+      registros.forEach(r => {
+        const linha = document.createElement("tr");
+        linha.innerHTML = `<td>${r.data}</td><td>${r.entrada||""}</td><td>${r.saida||""}</td><td>${r.trabalhadas||""}</td>`;
+        tabela.appendChild(linha);
+      });
+    }
+
+    function registrarEntrada() {
+      const hoje = new Date().toLocaleDateString();
+      let registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      if (registros.some(r => r.data === hoje)) {
+        return alert("Entrada já registrada hoje.");
+      }
+      registros.push({ data: hoje, entrada: new Date().toLocaleTimeString() });
+      localStorage.setItem("pontos", JSON.stringify(registros));
+      carregarRegistros();
+    }
+
+    function registrarSaida() {
+      const hoje = new Date().toLocaleDateString();
+      let registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      const registro = registros.find(r => r.data === hoje);
+      if (!registro || registro.saida) {
+        return alert("Entrada não registrada ou saída já registrada.");
+      }
+      const agora = new Date();
+      registro.saida = agora.toLocaleTimeString();
+
+      const [h,m,s] = registro.entrada.split(":").map(Number);
+      const ent = new Date(); ent.setHours(h,m,s);
+      const diff = new Date(agora - ent);
+      registro.trabalhadas = `${String(diff.getUTCHours()).padStart(2,"0")}:${String(diff.getUTCMinutes()).padStart(2,"0")}`;
+
+      localStorage.setItem("pontos", JSON.stringify(registros));
+      carregarRegistros();
+    }
+
+    function exportarCSV() {
+      const registros = JSON.parse(localStorage.getItem("pontos") || "[]");
+      if (registros.length === 0) return alert("Nenhum registro para exportar.");
+      const linhas = [["Data","Entrada","Saída","Horas Trabalhadas"].join(",")];
+      registros.forEach(r => linhas.push([r.data, r.entrada||"", r.saida||"", r.trabalhadas||""].join(",")));
+      const blob = new Blob([linhas.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "ponto_diario.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    carregarRegistros();
+  </script>
+</body>
+</html>
